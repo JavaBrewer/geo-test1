@@ -19,49 +19,48 @@ pipeline {
         }
 
         stage('Build Gradle') {
+			steps {
+				echo 'Build Gradle'
+
+				dir('.'){
+					sh '''
+						pwd
+						cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
+						chmod +x ./gradlew
+						./gradlew build --exclude-task test
+					'''
+				}
+			}
+			post {
+				failure {
+					error 'This pipeline stops here...'
+				}
+			}
+		}
+		
+		stage('Build Docker') {
             steps {
-                echo 'Build Gradle'
-                try {
-                    dir('.') {
-                        sh '''
-                            pwd
-                            cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
-                            chmod +x ./gradlew
-                            ./gradlew build --exclude-task test
-                        '''
-                    }
-                } catch (Exception e) {
-                    currentBuild.result = 'FAILURE'
-                    error("Failed to build Gradle: ${e.message}")
+                echo 'Build Docker'
+                sh """
+                    cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
+                    docker builder prune
+                    docker build -t $IMAGE_NAME:$BUILD_NUMBER .
+                    docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
+                """
+            }
+            post {
+                failure {
+                    error 'This pipeline stops here...'
                 }
             }
         }
+		
+        stage('Clean Up Docker Images on Jenkins Server') {
+			steps {
+				echo 'Cleaning up unused Docker images on Jenkins server'
 
-        stage('Push Docker') {
-            steps {
-                echo 'Push Docker'
-                try {
-                    script {
-                        // Cleanup current user docker credentials
-                        sh 'rm -f ~/.dockercfg ~/.docker/config.json || true'
-                        
-                        docker.withRegistry("https://${ECR_PATH}", "ecr:${REGION}:${AWS_CREDENTIAL_NAME}") {
-                            docker.image("${IMAGE_NAME}:${BUILD_NUMBER}").push()
-                            docker.image("${IMAGE_NAME}:latest").push()
-                        }
-                    }
-                } catch (Exception e) {
-                    currentBuild.result = 'FAILURE'
-                    error("Failed to push Docker image: ${e.message}")
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up...'
-            deleteDir()
-        }
-    }
+				// Clean up unused Docker images, including those created within the last hour
+				sh "docker image prune -f --all --filter \"until=1h\""
+			}
+		}
 }
