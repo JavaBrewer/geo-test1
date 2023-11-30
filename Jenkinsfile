@@ -13,7 +13,8 @@ pipeline {
         stage('Logging into AWS ECR') {
             steps {
                 script {
-                    sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
+                    def ecrLogin = sh(script: "aws ecr get-login-password --region ${AWS_DEFAULT_REGION}", returnStdout: true).trim()
+                    sh "echo \${ecrLogin} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
                 }
             }
         }
@@ -21,8 +22,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'gopang-github-up',
-                    url: 'https://github.com/ProjectGopang/conn_test.git'
+                        credentialsId: 'gopang-github-up',
+                        url: 'https://github.com/ProjectGopang/conn_test.git'
             }
         }
 
