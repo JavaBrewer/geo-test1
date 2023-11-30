@@ -5,19 +5,11 @@ pipeline {
         AWS_DEFAULT_REGION="ap-northeast-2"
         IMAGE_REPO_NAME="jenkins-pipeline"
         IMAGE_TAG="v1"
+	registryCredential = 'AWS_ECR'
         REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
     }
-   
+       
     stages {
-        
-         stage('Logging into AWS ECR') {
-            steps {
-                script {
-                sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
-                }
-                 
-            }
-        }
         
 		stage('Checkout') {
             steps {
