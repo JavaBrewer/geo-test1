@@ -1,8 +1,8 @@
 pipeline {
     agent any
-	
+    
     environment {
-        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
+        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
         app = 'gopang'
     }
 
@@ -10,8 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                        credentialsId: 'gopang-github-up',
-                        url: 'https://github.com/ProjectGopang/conn_test.git'
+                    credentialsId: 'gopang-github-up',
+                    url: 'https://github.com/ProjectGopang/conn_test.git'
             }
         }
 
