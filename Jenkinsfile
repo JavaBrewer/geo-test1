@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCOUNT_ID = "dev3"
+        AWS_ACCOUNT_ID = "061828348490"
         AWS_DEFAULT_REGION = "ap-northeast-2"
         IMAGE_REPO_NAME = "jenkins-pipeline"
         IMAGE_TAG = "v1"
