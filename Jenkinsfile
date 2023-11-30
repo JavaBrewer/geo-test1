@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_ACCOUNT_ID="061828348490"
         AWS_DEFAULT_REGION="ap-northeast-2"
-        IMAGE_REPO_NAME="jenkins-pipeline"
+        IMAGE_REPO_NAME="gopang"
         IMAGE_TAG="v1"
         REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
     }
