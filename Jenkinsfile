@@ -1,13 +1,11 @@
 pipeline {
     agent any
 	
-	environment {
-        registryCredential = 'AWS_ECR'
+    environment {
         registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
         app = 'gopang'
-        region = 'ap-northeast-2'
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -42,8 +40,8 @@ pipeline {
                     docker.build("${registry}/${app}:${BUILD_NUMBER}", '.')
 
                     // Log in to ECR
-                    withCredentials([usernamePassword(credentialsId: registryCredential, passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
-                        docker.withRegistry("https://${registry}", "ecr:${region}") {
+                    withCredentials([usernamePassword(credentialsId: 'AWS_ECR', passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
+                        docker.withRegistry("https://${registry}", 'ecr:ap-northeast-2') {
                             // Push Docker image to ECR
                             docker.image("${registry}/${app}:${BUILD_NUMBER}").push()
                         }
