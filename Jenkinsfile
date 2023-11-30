@@ -1,8 +1,8 @@
 pipeline {
     agent any
-
+	
     environment {
-        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
+        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
         app = 'gopang'
     }
 
@@ -37,7 +37,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image
-                    docker.build("${registry}/${app}:${BUILD_NUMBER}", '-f Dockerfile .')  // Specify Dockerfile
+                    docker.build("${registry}/${app}:${BUILD_NUMBER}", "-f ${WORKSPACE}/Dockerfile ${WORKSPACE}")
 
                     // Log in to ECR
                     withCredentials([usernamePassword(credentialsId: 'AWS_ECR', passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
