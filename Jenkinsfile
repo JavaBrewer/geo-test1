@@ -2,18 +2,27 @@ pipeline {
     agent any
 
     environment {
-        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
-        app = 'gopang'
-        AWS_CREDENTIAL_NAME = 'AWS_ECR' // AWS credential id for ECR
-        REGION = 'ap-northeast-2'
+        AWS_ACCOUNT_ID = "dev3"
+        AWS_DEFAULT_REGION = "ap-northeast-2"
+        IMAGE_REPO_NAME = "jenkins-pipeline"
+        IMAGE_TAG = "v1"
+        REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
     }
 
     stages {
+        stage('Logging into AWS ECR') {
+            steps {
+                script {
+                    sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'gopang',
-                    url: 'https://github.com/JavaBrewer/geo-test1.git'
+                    credentialsId: 'gopang-github-up',
+                    url: 'https://github.com/ProjectGopang/conn_test.git'
             }
         }
 
@@ -35,19 +44,21 @@ pipeline {
             }
         }
 
-        stage('Build and Push Docker Image') {
+        // Building Docker images
+        stage('Building image') {
             steps {
                 script {
-                    // Build Docker image
-                    docker.build("${registry}/${app}:${BUILD_NUMBER}", ".")
+                    dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+                }
+            }
+        }
 
-                    // Log in to ECR
-                    withCredentials([usernamePassword(credentialsId: 'AWS_ECR', passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
-                        docker.withRegistry("https://${registry}", 'ecr:ap-northeast-2') {
-                            // Push Docker image to ECR
-                            docker.image("${registry}/${app}:${BUILD_NUMBER}").push()
-                        }
-                    }
+        // Uploading Docker images into AWS ECR
+        stage('Pushing to ECR') {
+            steps {
+                script {
+                    sh """docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
+                    sh """docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"""
                 }
             }
         }
