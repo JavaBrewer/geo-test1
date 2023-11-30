@@ -14,8 +14,8 @@ pipeline {
 		stage('Checkout') {
             steps {
                 git branch: 'main',
-                        credentialsId: 'gopang-github-up',
-                        url: 'https://github.com/ProjectGopang/conn_test.git'
+                        credentialsId: 'jog_ps',
+                        url: 'https://github.com/JavaBrewer/geo-test1.git'
             }
         }
 
