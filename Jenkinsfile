@@ -1,11 +1,14 @@
 pipeline {
     agent any
+    
     environment {
-        registry = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
-        registryCredential = "dev3"
-        app = ''
+        CONTAINER_NAME = 'gopang-test-container'
+        AWS_CREDENTIAL_NAME = 'dev3'
+        ECR_PATH = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
+        IMAGE_NAME = '61828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
+        REGION = 'ap-northeast-2'
     }
-
+    
     stages {
         stage('Checkout') {
             steps {
@@ -15,44 +18,51 @@ pipeline {
             }
         }
 
-        stage('Prepare Workspace') {
+        stage('Build Gradle') {
             steps {
-                script {
-                    // Gradle Wrapper execution permission
-                    sh 'chmod +x gradlew'
-                }
-            }
-        }
-
-        stage('Gradle Build') {
-            steps {
-                script {
-                    // Run Gradle build
-                    sh './gradlew clean build'
+                echo 'Build Gradle'
+                try {
+                    dir('.') {
+                        sh '''
+                            pwd
+                            cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
+                            chmod +x ./gradlew
+                            ./gradlew build --exclude-task test
+                        '''
+                    }
+                } catch (Exception e) {
+                    currentBuild.result = 'FAILURE'
+                    error("Failed to build Gradle: ${e.message}")
                 }
             }
         }
 
         // Building Docker images
-        stage('Docker Build') {
+        stage('Push Docker') {
             steps {
-                script {
-                    app = docker.build("search/sentry-kafka-consumer:${version}", "--build-arg ENVIRONMENT=${env} .")   // Docker Build를 하는데 나의 경우 version을 Jenkins 매개변수로 입력 받게 셋팅하였다. Jenkins 매개변수는 ${변수명} 이렇게 사용 가능하다
+                echo 'Push Docker'
+                try {
+                    script {
+                        // cleanup current user docker credentials
+                        sh 'rm -f ~/.dockercfg ~/.docker/config.json || true'
+                        
+                        docker.withRegistry("https://${ECR_PATH}", "ecr:${REGION}:${AWS_CREDENTIAL_NAME}") {
+                            docker.image("${IMAGE_NAME}:${BUILD_NUMBER}").push()
+                            docker.image("${IMAGE_NAME}:latest").push()
+                        }
+                    }
+                } catch (Exception e) {
+                    currentBuild.result = 'FAILURE'
+                    error("Failed to push Docker image: ${e.message}")
                 }
             }
         }
+    }
 
-        // Uploading Docker images into AWS ECR
-        stage('Push Image') {
-            steps {
-                script{
- 
-                    docker.withRegistry("https://" + registry, "ecr:ap-northeast-2:" + registryCredential) {   // withRegistry(이미지 올릴 ECR 주소, Credentail ID) 이렇게 셋팅하면 된다.
-                        app.push("${version}")   // tag 정보
-                        app.push("latest")       // tag 정보
-                    }
-                }
-            }
+    post {
+        always {
+            echo 'Cleaning up...'
+            deleteDir()
         }
     }
 }
