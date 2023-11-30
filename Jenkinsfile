@@ -37,13 +37,12 @@ pipeline {
             }
         }
 
-        // Building Docker images
         stage('Push Docker') {
             steps {
                 echo 'Push Docker'
                 try {
                     script {
-                        // cleanup current user docker credentials
+                        // Cleanup current user docker credentials
                         sh 'rm -f ~/.dockercfg ~/.docker/config.json || true'
                         
                         docker.withRegistry("https://${ECR_PATH}", "ecr:${REGION}:${AWS_CREDENTIAL_NAME}") {
@@ -59,4 +58,10 @@ pipeline {
         }
     }
 
-    
+    post {
+        always {
+            echo 'Cleaning up...'
+            deleteDir()
+        }
+    }
+}
