@@ -1,12 +1,9 @@
 pipeline {
     agent any
     environment {
-        AWS_ACCOUNT_ID = "061828348490"
-        AWS_DEFAULT_REGION = "ap-northeast-2"
-        IMAGE_REPO_NAME = "jenkins-pipeline"
-        IMAGE_TAG = "v1"
-        RegistryCredential = "dev3"
-        REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
+        registry = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
+        registryCredential = "dev3"
+        app = ''
     }
 
     stages {
@@ -37,21 +34,23 @@ pipeline {
         }
 
         // Building Docker images
-        stage('Building image') {
+        stage('Docker Build') {
             steps {
                 script {
-                    dockerImage = docker.build("${IMAGE_REPO_NAME}:${IMAGE_TAG}")
+                    app = docker.build("search/sentry-kafka-consumer:${version}", "--build-arg ENVIRONMENT=${env} .")   // Docker Build를 하는데 나의 경우 version을 Jenkins 매개변수로 입력 받게 셋팅하였다. Jenkins 매개변수는 ${변수명} 이렇게 사용 가능하다
                 }
             }
         }
 
         // Uploading Docker images into AWS ECR
-        stage('Pushing to ECR') {
+        stage('Push Image') {
             steps {
-                script {
-                    sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-                    sh "docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:${IMAGE_TAG}"
-                    sh "docker push ${REPOSITORY_URI}:${IMAGE_TAG}"
+                script{
+ 
+                    docker.withRegistry("https://" + registry, "ecr:ap-northeast-2:" + registryCredential) {   // withRegistry(이미지 올릴 ECR 주소, Credentail ID) 이렇게 셋팅하면 된다.
+                        app.push("${version}")   // tag 정보
+                        app.push("latest")       // tag 정보
+                    }
                 }
             }
         }
