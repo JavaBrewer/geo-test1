@@ -1,17 +1,18 @@
 pipeline {
     agent any
 	
-    environment {
-        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang' // 개발 AWS에 생성한 컨슈머용 ECR 주소
-        registryCredential = 'AWS_ECR' // Jenkins에 설정한 AWS용 Credential ID
+	environment {
+        AWS_CREDENTIAL_NAME = 'AWS_ECR'
+        ECR_PATH = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
+        IMAGE_NAME = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
+        REGION = 'ap-northeast-2'
     }
-	
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                        credentialsId: 'gopang',
-                        url: 'https://github.com/JavaBrewer/geo-test1.git'
+                        credentialsId: 'gopang-github-up',
+                        url: 'https://github.com/ProjectGopang/conn_test.git'
             }
         }
 
@@ -37,13 +38,13 @@ pipeline {
             steps {
                 script {
                     // Build Docker image
-                    docker.build("${registry}:${BUILD_NUMBER}", '.')
+                    docker.build("${registry}/${app}:${BUILD_NUMBER}", '.')
 
                     // Log in to ECR
                     withCredentials([usernamePassword(credentialsId: registryCredential, passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
                         docker.withRegistry("https://${registry}", 'ecr:ap-northeast-2') {
                             // Push Docker image to ECR
-                            docker.image("${registry}:${BUILD_NUMBER}").push()
+                            docker.image("${registry}/${app}:${BUILD_NUMBER}").push()
                         }
                     }
                 }
