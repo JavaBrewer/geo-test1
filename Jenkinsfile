@@ -5,7 +5,7 @@ pipeline {
         AWS_DEFAULT_REGION="ap-northeast-2"
         IMAGE_REPO_NAME="jenkins-pipeline"
         IMAGE_TAG="v1"
-	registryCredential = 'dev3'
+	registryCredential = "dev3"
         REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
     }
        
