@@ -1,17 +1,19 @@
 pipeline {
     agent any
-    
+
     environment {
-        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
+        registry = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
         app = 'gopang'
+        AWS_CREDENTIAL_NAME = 'AWS_ECR' // AWS credential id for ECR
+        REGION = 'ap-northeast-2'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'gopang-github-up',
-                    url: 'https://github.com/ProjectGopang/conn_test.git'
+                    credentialsId: 'gopang',
+                    url: 'https://github.com/JavaBrewer/geo-test1.git'
             }
         }
 
@@ -37,7 +39,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image
-                    docker.build("${registry}/${app}:${BUILD_NUMBER}", "-f ${WORKSPACE}/Dockerfile ${WORKSPACE}")
+                    docker.build("${registry}/${app}:${BUILD_NUMBER}", ".")
 
                     // Log in to ECR
                     withCredentials([usernamePassword(credentialsId: 'AWS_ECR', passwordVariable: 'AWS_PASSWORD', usernameVariable: 'AWS_USERNAME')]) {
