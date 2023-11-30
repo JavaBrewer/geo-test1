@@ -1,66 +1,67 @@
 pipeline {
     agent any
-    
     environment {
-        CONTAINER_NAME = 'gopang-test-container'
-        AWS_CREDENTIAL_NAME = 'dev3'
-        ECR_PATH = '061828348490.dkr.ecr.ap-northeast-2.amazonaws.com'
-        IMAGE_NAME = '61828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang'
-        REGION = 'ap-northeast-2'
+        AWS_ACCOUNT_ID="061828348490"
+        AWS_DEFAULT_REGION="ap-northeast-2"
+        IMAGE_REPO_NAME="jenkins-pipeline"
+        IMAGE_TAG="v1"
+        REPOSITORY_URI = "061828348490.dkr.ecr.ap-northeast-2.amazonaws.com/gopang"
     }
-    
+   
     stages {
-        stage('Checkout') {
+        
+         stage('Logging into AWS ECR') {
+            steps {
+                script {
+                sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
+                }
+                 
+            }
+        }
+        
+		stage('Checkout') {
             steps {
                 git branch: 'main',
-                        credentialsId: 'jog_ps',
+                        credentialsId: 'gopang',
                         url: 'https://github.com/JavaBrewer/geo-test1.git'
             }
         }
 
-        stage('Build Gradle') {
-			steps {
-				echo 'Build Gradle'
-
-				dir('.'){
-					sh '''
-						pwd
-						cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
-						chmod +x ./gradlew
-						./gradlew build --exclude-task test
-					'''
-				}
-			}
-			post {
-				failure {
-					error 'This pipeline stops here...'
-				}
-			}
-		}
-		
-		stage('Build Docker') {
+        stage('Prepare Workspace') {
             steps {
-                echo 'Build Docker'
-                sh """
-                    cd /var/jenkins_home/workspace/teamPlannerBackEnd_jenkinsFile
-                    docker builder prune
-                    docker build -t $IMAGE_NAME:$BUILD_NUMBER .
-                    docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
-                """
-            }
-            post {
-                failure {
-                    error 'This pipeline stops here...'
+                script {
+                    // Gradle Wrapper execution permission
+                    sh 'chmod +x gradlew'
                 }
             }
         }
-		
-        stage('Clean Up Docker Images on Jenkins Server') {
-			steps {
-				echo 'Cleaning up unused Docker images on Jenkins server'
 
-				// Clean up unused Docker images, including those created within the last hour
-				sh "docker image prune -f --all --filter \"until=1h\""
-			}
-		}
+        stage('Gradle Build') {
+            steps {
+                script {
+                    // Run Gradle build
+                    sh './gradlew clean build'
+                }
+            }
+        }
+  
+    // Building Docker images
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+        }
+      }
+    }
+   
+    // Uploading Docker images into AWS ECR
+    stage('Pushing to ECR') {
+     steps{  
+         script {
+                sh """docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
+                sh """docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"""
+         }
+        }
+      }
+    }
 }
