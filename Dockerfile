@@ -5,7 +5,7 @@ FROM openjdk:17
 WORKDIR /app
 
 # Copy the application JAR file into the container
-COPY build/libs/*.jar app.jar
+COPY build/libs/ /app/
 
 # Specify the command to run on container start
 CMD ["java", "-jar", "app.jar"]
